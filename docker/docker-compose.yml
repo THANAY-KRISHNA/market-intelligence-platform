@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:3.8
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    networks:
+      - pipeline_net
+
+  kafka:
+    image: bitnami/kafka:3.4
+    container_name: kafka
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+    ports:
+      - "9094:9094"
+    depends_on:
+      - zookeeper
+    networks:
+      - pipeline_net
+
+  db:
+    image: postgres:15-alpine
+    container_name: db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=market_sentiment
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d market_sentiment"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pipeline_net
+
+  backend:
+    build:
+      context: ../
+      dockerfile: docker/backend.Dockerfile
+    container_name: backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/market_sentiment
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - DATA_SOURCE=mock
+      - SENTIMENT_MODEL=vader
+      - ENVIRONMENT=production
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - pipeline_net
+
+  frontend:
+    build:
+      context: ../
+      dockerfile: docker/frontend.Dockerfile
+    container_name: frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - pipeline_net
+
+volumes:
+  postgres_data:
+
+networks:
+  pipeline_net:
+    driver: bridge

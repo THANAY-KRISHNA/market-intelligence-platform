@@ -1,0 +1,10 @@
+{
+  "name": "bigdata-root",
+  "version": "1.0.0",
+  "description": "Root scripts for stock sentiment correlation platform",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "preview": "npm run preview --prefix frontend"
+  }
+}
