@@ -7,9 +7,21 @@ import { Cpu, CheckCircle, Database, Network } from 'lucide-react';
 export default function App() {
   const [view, setView] = useState('landing'); // 'landing' | 'dashboard'
   const [selectedExchange, setSelectedExchange] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('tradeflow_theme');
+    return saved ? saved === 'dark' : true;
+  });
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => {
+      const next = !prev;
+      localStorage.setItem('tradeflow_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#030303] text-zinc-100 overflow-x-hidden">
+    <div className={`relative min-h-screen w-full transition-colors duration-300 overflow-x-hidden ${darkMode ? 'bg-[#030303] text-zinc-100' : 'bg-slate-50 text-slate-900'}`}>
       
       {/* 🔮 Master 3D WebGL Backdrop (always active, darkens in dashboard view) */}
       <Landing3D chapter={view === 'landing' ? 1 : 8} onSelectExchange={setSelectedExchange} />
@@ -26,14 +38,14 @@ export default function App() {
             className="relative z-10 min-h-screen w-full flex flex-col justify-between p-6 md:p-12"
           >
             {/* Header Navbar */}
-            <header className="flex items-center justify-between max-w-7xl w-full mx-auto pb-6 border-b border-white/5">
+            <header className={`flex items-center justify-between max-w-7xl w-full mx-auto pb-6 border-b ${darkMode ? 'border-white/5' : 'border-slate-200'}`}>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-black text-white tracking-tighter uppercase flex items-center gap-1.5">
+                <span className={`text-xl font-black tracking-tighter uppercase flex items-center gap-1.5 ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                   <span className="text-cyan-400">🌊</span> TradeFlow
                 </span>
               </div>
               
-              <nav className="hidden md:flex items-center gap-8 text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <nav className={`hidden md:flex items-center gap-8 text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-zinc-400' : 'text-slate-600'}`}>
                 <a href="#product" className="hover:text-cyan-400 transition-colors">Product</a>
                 <a href="#markets" className="hover:text-cyan-400 transition-colors">Markets</a>
                 <a href="#pricing" className="hover:text-cyan-400 transition-colors">Pricing</a>
@@ -41,12 +53,23 @@ export default function App() {
                 <a href="#about" className="hover:text-cyan-400 transition-colors">About</a>
               </nav>
 
-              <button 
-                onClick={() => setView('dashboard')}
-                className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black text-[10px] rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-md shadow-purple-500/25 uppercase tracking-widest"
-              >
-                Launch App
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleDarkMode}
+                  className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                    darkMode ? 'bg-zinc-900 text-cyan-400 border-white/10' : 'bg-white text-slate-800 border-slate-300 shadow-sm'
+                  }`}
+                  title="Toggle Theme Mode"
+                >
+                  {darkMode ? '🌙 Dark' : '☀️ Light'}
+                </button>
+                <button 
+                  onClick={() => setView('dashboard')}
+                  className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black text-[10px] rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-md shadow-purple-500/25 uppercase tracking-widest"
+                >
+                  Launch App
+                </button>
+              </div>
             </header>
 
             {/* Hero Main Content */}

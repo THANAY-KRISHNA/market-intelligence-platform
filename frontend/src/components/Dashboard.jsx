@@ -56,7 +56,7 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: Settings, description: 'System configuration, data stream toggles, and API telemetry' },
 ];
 
-export default function Dashboard({ user, onBackToLanding }) {
+export default function Dashboard({ user, onBackToLanding, darkMode = true, onToggleDarkMode }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [tickers, setTickers] = useState(DEFAULT_TICKERS);
   const [selectedTicker, setSelectedTicker] = useState('TSLA');
@@ -239,11 +239,16 @@ export default function Dashboard({ user, onBackToLanding }) {
     return true;
   });
 
+  const panelClass = darkMode ? 'glass-panel' : 'glass-panel-light';
+  const cardBorderClass = darkMode ? 'border-white/5' : 'border-slate-200';
+  const textPrimaryClass = darkMode ? 'text-white' : 'text-slate-900';
+  const textSecondaryClass = darkMode ? 'text-zinc-400' : 'text-slate-600';
+
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#030303] text-zinc-100 font-sans">
+    <div className={`flex flex-col md:flex-row min-h-screen font-sans transition-colors duration-300 ${darkMode ? 'bg-[#030303] text-zinc-100' : 'bg-slate-50 text-slate-900'}`}>
       
       {/* 🧭 Left Sidebar Navigation (Desktop) */}
-      <aside className="w-64 border-r border-white/5 bg-[#050508]/80 backdrop-blur-md p-6 flex flex-col justify-between hidden md:flex shrink-0">
+      <aside className={`w-64 border-r p-6 flex flex-col justify-between hidden md:flex shrink-0 transition-colors duration-300 ${darkMode ? 'border-white/5 bg-[#050508]/80 backdrop-blur-md text-zinc-100' : 'border-slate-200 bg-white/90 backdrop-blur-md text-slate-900 shadow-sm'}`}>
         <div className="space-y-8">
           {/* Logo */}
           <div 
@@ -251,7 +256,7 @@ export default function Dashboard({ user, onBackToLanding }) {
             className="flex items-center gap-2.5 cursor-pointer group"
           >
             <span className="text-2xl text-cyan-400 group-hover:scale-110 transition-transform">🌊</span>
-            <span className="text-lg font-black text-white tracking-tighter uppercase">TradeFlow</span>
+            <span className={`text-lg font-black tracking-tighter uppercase ${textPrimaryClass}`}>TradeFlow</span>
           </div>
 
           {/* Navigation Links */}
@@ -266,10 +271,10 @@ export default function Dashboard({ user, onBackToLanding }) {
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-[11px] uppercase tracking-wider rounded-lg transition-all ${
                     isActive 
                       ? 'bg-cyan-500/10 border-l-2 border-cyan-400 text-cyan-400 font-black shadow-sm shadow-cyan-500/10' 
-                      : 'text-zinc-400 hover:text-white hover:bg-white/5 font-bold border-l-2 border-transparent'
+                      : (darkMode ? 'text-zinc-400 hover:text-white hover:bg-white/5 font-bold border-l-2 border-transparent' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-bold border-l-2 border-transparent')
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-cyan-400' : 'text-zinc-400'}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-cyan-400' : (darkMode ? 'text-zinc-400' : 'text-slate-500')}`} />
                   {item.label}
                 </button>
               );
@@ -278,21 +283,30 @@ export default function Dashboard({ user, onBackToLanding }) {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="space-y-4 pt-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-wider">
-          <div className="flex items-center justify-between px-2 text-zinc-500">
-            <span>Dark Mode</span>
-            <span className="text-cyan-400 font-black">Active</span>
+        <div className={`space-y-4 pt-6 border-t text-[10px] font-bold uppercase tracking-wider ${darkMode ? 'border-white/5' : 'border-slate-200'}`}>
+          <div className="flex items-center justify-between px-2">
+            <span className={darkMode ? 'text-zinc-400' : 'text-slate-600 font-extrabold'}>
+              Dark Mode
+            </span>
+            <button 
+              type="button"
+              onClick={onToggleDarkMode}
+              className={`relative w-11 h-6 rounded-full transition-colors p-1 flex items-center cursor-pointer ${darkMode ? 'bg-cyan-500 justify-end' : 'bg-slate-300 justify-start'}`}
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              <span className="w-4 h-4 rounded-full bg-white shadow-md transform transition-transform"></span>
+            </button>
           </div>
 
           <div 
             onClick={onBackToLanding} 
-            className="flex items-center gap-3 p-2 bg-zinc-950 border border-white/5 hover:border-cyan-400/30 rounded-xl cursor-pointer hover:bg-zinc-900 transition-colors"
+            className={`flex items-center gap-3 p-2 border rounded-xl cursor-pointer transition-colors ${darkMode ? 'bg-zinc-950 border-white/5 hover:border-cyan-400/30 hover:bg-zinc-900' : 'bg-slate-100 border-slate-200 hover:border-cyan-500/40 hover:bg-white'}`}
           >
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-400 to-purple-500 flex items-center justify-center text-[10px] text-white font-black">
               TF
             </div>
             <div className="text-left font-sans">
-              <span className="text-white block font-extrabold text-[10px]">TradeFlow Pro</span>
+              <span className={`block font-extrabold text-[10px] ${textPrimaryClass}`}>TradeFlow Pro</span>
               <span className="text-zinc-500 text-[8px] block font-medium mt-0.5">Upgrade Account &rarr;</span>
             </div>
           </div>
@@ -1050,12 +1064,20 @@ export default function Dashboard({ user, onBackToLanding }) {
                   <span className="text-xs font-mono font-black text-cyan-400">{latency} ms</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-zinc-950/60 border border-white/5 rounded-xl">
+                <div className={`flex items-center justify-between p-4 rounded-xl border ${darkMode ? 'bg-zinc-950/60 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
                   <div>
-                    <span className="text-xs font-bold text-white block">Theme Mode</span>
-                    <span className="text-[10px] text-zinc-500 block">Cyberpunk Dark Mode</span>
+                    <span className={`text-xs font-bold block ${textPrimaryClass}`}>Theme Mode</span>
+                    <span className="text-[10px] text-zinc-500 block">{darkMode ? 'Cyberpunk Dark Mode' : 'Light Mode'}</span>
                   </div>
-                  <span className="text-[10px] font-black text-cyan-400">ACTIVE</span>
+                  <button 
+                    type="button"
+                    onClick={onToggleDarkMode}
+                    className={`px-4 py-2 text-xs font-black uppercase rounded-xl transition-all cursor-pointer ${
+                      darkMode ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30' : 'bg-slate-900 text-white shadow hover:bg-slate-800'
+                    }`}
+                  >
+                    {darkMode ? '🌙 Dark Mode (Active)' : '☀️ Light Mode (Active)'}
+                  </button>
                 </div>
               </div>
             </div>
