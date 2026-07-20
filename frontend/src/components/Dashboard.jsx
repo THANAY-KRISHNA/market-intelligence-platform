@@ -11,6 +11,17 @@ import confetti from 'canvas-confetti';
 
 const TICKERS = ["TSLA", "AAPL", "NVDA", "MSFT", "META", "AMZN", "GOOGL", "NFLX"];
 
+const TICKER_NAMES = {
+  TSLA: "Tesla, Inc.",
+  AAPL: "Apple Inc.",
+  NVDA: "NVIDIA Corporation",
+  MSFT: "Microsoft Corporation",
+  META: "Meta Platforms, Inc.",
+  AMZN: "Amazon.com, Inc.",
+  GOOGL: "Alphabet Inc. (Google)",
+  NFLX: "Netflix, Inc."
+};
+
 const CORRELATION_MATRIX = {
   TSLA: { TSLA: 1.0, AAPL: 0.24, NVDA: 0.58, MSFT: 0.12, META: 0.35, AMZN: 0.44, GOOGL: 0.18, NFLX: 0.22 },
   AAPL: { TSLA: 0.24, AAPL: 1.0, NVDA: 0.45, MSFT: 0.72, META: 0.52, AMZN: 0.61, GOOGL: 0.68, NFLX: 0.38 },
@@ -159,13 +170,13 @@ export default function Dashboard({ user, onBackToLanding }) {
       const queryLower = userQuery.toLowerCase();
       
       if (queryLower.includes('nvda') || queryLower.includes('nvidia')) {
-        reply = "NVDA correlation coefficient is currently at +0.58. The rolling VADER sentiment score shows strong bullish accumulation (+0.72) linked to high social view counts, triggering momentum BUY signals.";
+        reply = "NVIDIA Corporation (NVDA) correlation coefficient is currently at +0.58. The rolling VADER sentiment score shows strong bullish accumulation (+0.72) linked to high social view counts, triggering momentum BUY signals.";
       } else if (queryLower.includes('tsla') || queryLower.includes('tesla')) {
-        reply = "TSLA Pearson coefficient shows negative divergence (-0.28). Social volume is extremely high, but high bot probabilities (42%) and weak VADER scores suggest taking caution ahead of key technical thresholds.";
+        reply = "Tesla, Inc. (TSLA) Pearson coefficient shows negative divergence (-0.28). Social volume is extremely high, but high bot probabilities (42%) and weak VADER scores suggest taking caution ahead of key technical thresholds.";
       } else if (queryLower.includes('fear') || queryLower.includes('greed') || queryLower.includes('mood')) {
-        reply = `The aggregate market sentiment index is currently at ${dashboardSummary?.fear_greed_score || 54} (${dashboardSummary?.market_mood || 'NEUTRAL'}). Discussions are concentrated heavily in tech tickers, with NVDA and TSLA leading volume.`;
+        reply = `The aggregate market sentiment index is currently at ${dashboardSummary?.fear_greed_score || 54} (${dashboardSummary?.market_mood || 'NEUTRAL'}). Discussions are concentrated heavily in tech tickers like NVIDIA Corporation and Tesla, Inc. leading volume.`;
       } else {
-        reply = "I ran Pearson correlation scans across active streams. Sentiment momentum has turned positive for tech giants (AAPL, MSFT) but remains neutral for media streams (NFLX). Use the matrix below to spot sector discrepancies.";
+        reply = "I ran Pearson correlation scans across active streams. Sentiment momentum has turned positive for tech giants (Apple Inc., Microsoft Corporation) but remains neutral for media streams (Netflix, Inc.). Use the matrix below to spot sector discrepancies.";
       }
       
       setChatHistory(prev => [...prev, { role: 'assistant', text: reply }]);
@@ -174,9 +185,10 @@ export default function Dashboard({ user, onBackToLanding }) {
   };
 
   const handleCSVExport = () => {
-    let csvContent = "data:text/csv;charset=utf-8,Ticker,Price,Volume,AvgSentiment,Signal\n";
+    let csvContent = "data:text/csv;charset=utf-8,Ticker,Company Name,Price,Volume,AvgSentiment,Signal\n";
     tickers.forEach(t => {
-      csvContent += `${t.ticker},${t.current_price},${t.volume},${t.avg_sentiment},${t.signal}\n`;
+      const name = TICKER_NAMES[t.ticker] || t.ticker;
+      csvContent += `${t.ticker},"${name}",${t.current_price},${t.volume},${t.avg_sentiment},${t.signal}\n`;
     });
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -187,7 +199,12 @@ export default function Dashboard({ user, onBackToLanding }) {
     document.body.removeChild(link);
   };
 
-  const filteredTickers = tickers.filter(t => t.ticker.toLowerCase().includes(paletteSearch.toLowerCase()));
+  const filteredTickers = tickers.filter(t => {
+    const fullName = TICKER_NAMES[t.ticker] || '';
+    const query = paletteSearch.toLowerCase();
+    return t.ticker.toLowerCase().includes(query) || fullName.toLowerCase().includes(query);
+  });
+
   const f_g_score = dashboardSummary?.fear_greed_score || 50;
   const f_g_mood = dashboardSummary?.market_mood || 'NEUTRAL';
   const currentNav = NAV_ITEMS.find(item => item.id === activeTab) || NAV_ITEMS[0];
@@ -306,8 +323,8 @@ export default function Dashboard({ user, onBackToLanding }) {
                 type="text" 
                 onClick={() => setPaletteOpen(true)}
                 readOnly
-                className="bg-zinc-900/40 border border-white/5 text-[10px] font-bold uppercase tracking-wider text-zinc-300 placeholder-zinc-600 rounded-xl px-4 py-2.5 w-full md:w-60 focus:outline-none focus:border-cyan-400 cursor-pointer"
-                placeholder="Search assets, markets, news..."
+                className="bg-zinc-900/40 border border-white/5 text-[10px] font-bold uppercase tracking-wider text-zinc-300 placeholder-zinc-600 rounded-xl px-4 py-2.5 w-full md:w-64 focus:outline-none focus:border-cyan-400 cursor-pointer"
+                placeholder="Search assets (e.g. Tesla, Apple)..."
               />
               <span className="absolute right-3 top-2.5 text-zinc-600 text-[10px] font-mono">Ctrl+K</span>
             </div>
@@ -342,7 +359,7 @@ export default function Dashboard({ user, onBackToLanding }) {
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-cyan-400">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">S&P 500</span>
+                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">S&P 500 Index</span>
                   <span className="text-lg font-black text-white font-mono block">5,278.40</span>
                   <span className="text-[10px] font-bold text-emerald-400 font-mono flex items-center gap-1">+1.32%</span>
                 </div>
@@ -353,7 +370,7 @@ export default function Dashboard({ user, onBackToLanding }) {
 
               <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-purple-500">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">NASDAQ 100</span>
+                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">NASDAQ 100 Index</span>
                   <span className="text-lg font-black text-white font-mono block">18,405.59</span>
                   <span className="text-[10px] font-bold text-emerald-400 font-mono flex items-center gap-1">+1.85%</span>
                 </div>
@@ -364,7 +381,7 @@ export default function Dashboard({ user, onBackToLanding }) {
 
               <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-pink-500">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Bitcoin</span>
+                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Bitcoin (BTC/USD)</span>
                   <span className="text-lg font-black text-white font-mono block">$66,384.21</span>
                   <span className="text-[10px] font-bold text-emerald-400 font-mono flex items-center gap-1">+2.91%</span>
                 </div>
@@ -375,7 +392,7 @@ export default function Dashboard({ user, onBackToLanding }) {
 
               <div className="glass-panel p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-zinc-500">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">VIX</span>
+                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Volatility Index (VIX)</span>
                   <span className="text-lg font-black text-white font-mono block">12.45</span>
                   <span className="text-[10px] font-bold text-rose-500 font-mono flex items-center gap-1">-3.21%</span>
                 </div>
@@ -388,19 +405,19 @@ export default function Dashboard({ user, onBackToLanding }) {
             {/* 📊 Charts & Mood Dial */}
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <div className="lg:col-span-8 glass-panel border-neon-glow rounded-2xl p-6">
-                <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-3 mb-4 gap-2">
                   <div>
                     <h2 className="text-xs font-black uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-                      Sentiment vs Price ({selectedTicker})
+                      Sentiment vs Price ({TICKER_NAMES[selectedTicker] || selectedTicker} - ${selectedTicker})
                     </h2>
                     <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">Stock price overlaid with VADER sentiment scores</p>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
                     {TICKERS.slice(0, 4).map(t => (
                       <button
                         key={t}
                         onClick={() => setSelectedTicker(t)}
-                        className={`px-2.5 py-1 text-[9px] font-mono font-black rounded ${selectedTicker === t ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-zinc-900 text-zinc-500'}`}
+                        className={`px-2.5 py-1 text-[9px] font-mono font-black rounded transition-all ${selectedTicker === t ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`}
                       >
                         ${t}
                       </button>
@@ -446,6 +463,7 @@ export default function Dashboard({ user, onBackToLanding }) {
                 </h3>
                 <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                   {tickers.slice(0, 5).map(t => {
+                    const fullName = TICKER_NAMES[t.ticker] || t.ticker;
                     const changeColor = t.price_change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400';
                     return (
                       <div 
@@ -454,8 +472,8 @@ export default function Dashboard({ user, onBackToLanding }) {
                         className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all ${selectedTicker === t.ticker ? 'bg-cyan-500/10 border-cyan-400/40' : 'bg-zinc-950/40 border-white/5 hover:border-cyan-400/20'}`}
                       >
                         <div className="space-y-0.5">
-                          <span className="font-extrabold text-xs text-white block">${t.ticker}</span>
-                          <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider font-mono">vol {t.volume.toLocaleString()}</span>
+                          <span className="font-extrabold text-xs text-white block">{fullName}</span>
+                          <span className="text-[9px] text-cyan-400 font-bold uppercase tracking-wider font-mono">${t.ticker} &bull; vol {t.volume.toLocaleString()}</span>
                         </div>
                         <div className="text-right space-y-0.5 font-mono">
                           <span className="text-xs font-bold text-zinc-200 block">${t.current_price.toFixed(2)}</span>
@@ -476,14 +494,23 @@ export default function Dashboard({ user, onBackToLanding }) {
                   <table className="w-full border-collapse text-left text-[10px] font-mono">
                     <thead>
                       <tr className="border-b border-white/5 text-zinc-500">
-                        <th className="pb-2">ID</th>
-                        {TICKERS.slice(0, 4).map(t => <th key={t} className="pb-2 text-center">{t}</th>)}
+                        <th className="pb-2">Asset Name</th>
+                        {TICKERS.slice(0, 4).map(t => (
+                          <th key={t} className="pb-2 text-center">
+                            <span className="block text-zinc-300 text-[9px] font-extrabold">{t}</span>
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {TICKERS.slice(0, 4).map(t1 => (
                         <tr key={t1} className="border-b border-white/5">
-                          <td className="py-2 font-bold text-zinc-300">${t1}</td>
+                          <td className="py-2.5 pr-2 font-bold text-zinc-300">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-white text-[11px] font-black">{TICKER_NAMES[t1] || t1}</span>
+                              <span className="text-cyan-400 font-mono text-[9px]">(${t1})</span>
+                            </div>
+                          </td>
                           {TICKERS.slice(0, 4).map(t2 => {
                             const corr = CORRELATION_MATRIX[t1][t2];
                             const isDiagonal = t1 === t2;
@@ -512,7 +539,10 @@ export default function Dashboard({ user, onBackToLanding }) {
                     const signalColor = t.signal === 'BUY' ? 'text-emerald-400' : (t.signal === 'SELL' ? 'text-rose-400' : 'text-zinc-400');
                     return (
                       <div key={t.ticker} className="flex items-center justify-between p-2.5 bg-zinc-950/40 border border-white/5 rounded-xl">
-                        <span className="text-zinc-300 font-mono font-black">${t.ticker}</span>
+                        <div className="flex flex-col">
+                          <span className="text-white font-extrabold text-[11px]">{TICKER_NAMES[t.ticker] || t.ticker}</span>
+                          <span className="text-cyan-400 font-mono font-bold text-[9px]">${t.ticker}</span>
+                        </div>
                         <span className={`font-black ${signalColor}`}>{t.signal}</span>
                         <span className="text-zinc-500 font-mono">88%</span>
                       </div>
@@ -553,7 +583,7 @@ export default function Dashboard({ user, onBackToLanding }) {
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       className="flex-1 px-4 py-3 bg-zinc-950/80 border border-white/10 rounded-xl text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all"
-                      placeholder="Ask AI Copilot (e.g., 'Why is NVDA bullish?' or 'Explain current Fear & Greed level')..."
+                      placeholder="Ask AI Copilot (e.g., 'Why is NVIDIA bullish?' or 'Explain Tesla divergence')..."
                     />
                     <button
                       type="submit"
@@ -582,8 +612,11 @@ export default function Dashboard({ user, onBackToLanding }) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {tickers.map(t => (
                 <div key={t.ticker} className="glass-panel p-4 rounded-xl space-y-2 border border-white/5 hover:border-cyan-400/30 transition-all">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-sm text-white">${t.ticker}</span>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-black text-sm text-white block">{TICKER_NAMES[t.ticker] || t.ticker}</span>
+                      <span className="text-cyan-400 font-mono text-[10px] font-bold">${t.ticker}</span>
+                    </div>
                     <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${t.price_change_pct >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                       {t.price_change_pct >= 0 ? '+' : ''}{t.price_change_pct.toFixed(2)}%
                     </span>
@@ -611,7 +644,7 @@ export default function Dashboard({ user, onBackToLanding }) {
                 <table className="w-full text-left text-xs font-mono">
                   <thead>
                     <tr className="border-b border-white/10 text-zinc-500 uppercase text-[10px]">
-                      <th className="py-3 px-4">Asset</th>
+                      <th className="py-3 px-4">Company & Ticker</th>
                       <th className="py-3 px-4">Current Price</th>
                       <th className="py-3 px-4">24h Change</th>
                       <th className="py-3 px-4">Volume</th>
@@ -623,7 +656,12 @@ export default function Dashboard({ user, onBackToLanding }) {
                   <tbody>
                     {tickers.map(t => (
                       <tr key={t.ticker} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="py-3 px-4 font-bold text-white">${t.ticker}</td>
+                        <td className="py-3 px-4 font-bold text-white">
+                          <div className="flex flex-col">
+                            <span className="text-white font-black text-xs">{TICKER_NAMES[t.ticker] || t.ticker}</span>
+                            <span className="text-cyan-400 font-mono text-[10px]">${t.ticker}</span>
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-zinc-200">${t.current_price.toFixed(2)}</td>
                         <td className={`py-3 px-4 font-bold ${t.price_change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {t.price_change_pct >= 0 ? '+' : ''}{t.price_change_pct.toFixed(2)}%
@@ -664,7 +702,7 @@ export default function Dashboard({ user, onBackToLanding }) {
                 <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
                   <div>
                     <h2 className="text-xs font-black uppercase tracking-wider text-zinc-200">
-                      Rolling VADER Sentiment Analysis ({selectedTicker})
+                      Rolling VADER Sentiment Analysis ({TICKER_NAMES[selectedTicker]} - ${selectedTicker})
                     </h2>
                     <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide mt-1">High-frequency natural language processing timeline</p>
                   </div>
@@ -715,7 +753,7 @@ export default function Dashboard({ user, onBackToLanding }) {
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   className="flex-1 px-4 py-3 bg-zinc-950/80 border border-white/10 rounded-xl text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-400"
-                  placeholder="Ask AI Copilot (e.g., 'What is NVDA sentiment score?')..."
+                  placeholder="Ask AI Copilot (e.g., 'What is NVIDIA sentiment score?')..."
                 />
                 <button
                   type="submit"
@@ -763,7 +801,8 @@ export default function Dashboard({ user, onBackToLanding }) {
                     <div key={t.ticker} className={`p-4 rounded-xl border flex items-center justify-between ${isBuy ? 'bg-emerald-950/10 border-emerald-500/20' : 'bg-rose-950/10 border-rose-500/20'}`}>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-white text-sm">${t.ticker}</span>
+                          <span className="font-extrabold text-white text-sm">{TICKER_NAMES[t.ticker] || t.ticker}</span>
+                          <span className="text-cyan-400 font-mono font-bold text-xs">(${t.ticker})</span>
                           <span className={`px-2 py-0.5 text-[9px] font-black rounded ${isBuy ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                             {t.signal}
                           </span>
@@ -806,7 +845,10 @@ export default function Dashboard({ user, onBackToLanding }) {
                     className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedTicker === t.ticker ? 'bg-cyan-500/10 border-cyan-400' : 'bg-zinc-950/40 border-white/5 hover:border-cyan-400/30'}`}
                   >
                     <div className="flex justify-between items-start">
-                      <span className="font-extrabold text-white text-sm">${t.ticker}</span>
+                      <div className="flex flex-col">
+                        <span className="font-extrabold text-white text-sm">{TICKER_NAMES[t.ticker] || t.ticker}</span>
+                        <span className="text-cyan-400 font-mono text-[10px] font-bold">${t.ticker}</span>
+                      </div>
                       <span className={`text-[10px] font-mono font-bold ${t.price_change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {t.price_change_pct >= 0 ? '+' : ''}{t.price_change_pct.toFixed(2)}%
                       </span>
@@ -821,7 +863,9 @@ export default function Dashboard({ user, onBackToLanding }) {
             </div>
 
             <div className="glass-panel border-neon-glow rounded-2xl p-6">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-200 mb-4">Selected Asset Detail: ${selectedTicker}</h3>
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-200 mb-4">
+                Selected Asset Detail: {TICKER_NAMES[selectedTicker]} (${selectedTicker})
+              </h3>
               <Correlation ticker={selectedTicker} />
             </div>
           </div>
@@ -858,14 +902,14 @@ export default function Dashboard({ user, onBackToLanding }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="glass-panel p-4 rounded-2xl space-y-3">
                 <img src="/images/news_nvidia.png" alt="NVIDIA" className="w-full h-40 object-cover rounded-xl border border-white/5" />
-                <span className="text-[9px] text-cyan-400 font-black uppercase tracking-widest block">NVIDIA &bull; 2m ago</span>
+                <span className="text-[9px] text-cyan-400 font-black uppercase tracking-widest block">NVIDIA Corporation &bull; 2m ago</span>
                 <h4 className="text-sm font-bold text-white leading-snug">NVIDIA hits new all-time high driven by AI demand surge</h4>
                 <p className="text-xs text-zinc-400 leading-relaxed font-medium">Social sentiment spiked +84% following institutional earnings previews and data center expansions.</p>
               </div>
 
               <div className="glass-panel p-4 rounded-2xl space-y-3">
                 <img src="/images/news_tesla.png" alt="Tesla" className="w-full h-40 object-cover rounded-xl border border-white/5" />
-                <span className="text-[9px] text-purple-400 font-black uppercase tracking-widest block">Tesla &bull; 5m ago</span>
+                <span className="text-[9px] text-purple-400 font-black uppercase tracking-widest block">Tesla, Inc. &bull; 5m ago</span>
                 <h4 className="text-sm font-bold text-white leading-snug">Tesla Q2 deliveries beat wall street expectations</h4>
                 <p className="text-xs text-zinc-400 leading-relaxed font-medium">VADER sentiment score flipped positive after delivery figures surpassed consensus estimates.</p>
               </div>
@@ -905,14 +949,23 @@ export default function Dashboard({ user, onBackToLanding }) {
                 <table className="w-full border-collapse text-left text-xs font-mono">
                   <thead>
                     <tr className="border-b border-white/10 text-zinc-500">
-                      <th className="pb-3">Ticker</th>
-                      {TICKERS.map(t => <th key={t} className="pb-3 text-center">{t}</th>)}
+                      <th className="pb-3 px-3">Company & Ticker</th>
+                      {TICKERS.map(t => (
+                        <th key={t} className="pb-3 text-center px-2">
+                          <span className="block text-zinc-300 font-extrabold">{t}</span>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {TICKERS.map(t1 => (
                       <tr key={t1} className="border-b border-white/5">
-                        <td className="py-3 font-bold text-zinc-200">${t1}</td>
+                        <td className="py-3 px-3 font-bold text-zinc-200">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white text-xs font-black">{TICKER_NAMES[t1] || t1}</span>
+                            <span className="text-cyan-400 font-mono text-[10px]">(${t1})</span>
+                          </div>
+                        </td>
                         {TICKERS.map(t2 => {
                           const corr = CORRELATION_MATRIX[t1]?.[t2] || 0.5;
                           const isDiagonal = t1 === t2;
@@ -1041,7 +1094,7 @@ export default function Dashboard({ user, onBackToLanding }) {
                 value={paletteSearch}
                 onChange={(e) => setPaletteSearch(e.target.value)}
                 className="flex-1 bg-transparent text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none"
-                placeholder="Search tickers or commands (type ticker name)..."
+                placeholder="Search by ticker symbol or company name (e.g., Tesla, Apple, NVDA)..."
               />
               <button 
                 onClick={() => setPaletteOpen(false)}
@@ -1052,7 +1105,7 @@ export default function Dashboard({ user, onBackToLanding }) {
             </div>
             
             <div className="p-2 max-h-60 overflow-y-auto">
-              <span className="text-[10px] font-mono text-zinc-600 p-2 block uppercase tracking-wider">Tickers Found</span>
+              <span className="text-[10px] font-mono text-zinc-600 p-2 block uppercase tracking-wider">Assets Found</span>
               {filteredTickers.map(t => (
                 <div
                   key={t.ticker}
@@ -1062,12 +1115,15 @@ export default function Dashboard({ user, onBackToLanding }) {
                   }}
                   className="p-3 rounded-lg hover:bg-white/5 cursor-pointer flex justify-between items-center text-xs"
                 >
-                  <span className="font-bold text-zinc-200">${t.ticker}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{TICKER_NAMES[t.ticker] || t.ticker}</span>
+                    <span className="text-cyan-400 font-mono text-[10px]">(${t.ticker})</span>
+                  </div>
                   <span className="text-zinc-500 font-mono">${t.current_price.toFixed(2)}</span>
                 </div>
               ))}
               {filteredTickers.length === 0 && (
-                <div className="p-4 text-center text-xs text-zinc-700">No results found matching search query.</div>
+                <div className="p-4 text-center text-xs text-zinc-700">No assets matching query.</div>
               )}
             </div>
           </div>
