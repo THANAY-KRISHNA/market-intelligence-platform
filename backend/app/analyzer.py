@@ -11,18 +11,22 @@ class VaderAnalyzer(BaseSentimentAnalyzer):
     def __init__(self):
         try:
             import nltk
+            os.environ["NLTK_DATA"] = "/tmp/nltk_data"
             from nltk.sentiment.vader import SentimentIntensityAnalyzer
             
             # Automate download of Lexicon resource
             try:
                 nltk.data.find('sentiment/vader_lexicon.zip')
             except LookupError:
-                print("Downloading NLTK VADER lexicon...")
-                nltk.download('vader_lexicon', quiet=True)
+                print("Downloading NLTK VADER lexicon to /tmp...")
+                try:
+                    nltk.download('vader_lexicon', quiet=True, download_dir='/tmp/nltk_data')
+                except Exception as dl_err:
+                    print(f"NLTK download skipped or failed: {dl_err}")
                 
             self.sid = SentimentIntensityAnalyzer()
-        except ImportError:
-            print("Warning: NLTK not installed. Using a fallback regex sentiment scorer.")
+        except Exception as err:
+            print(f"Warning: NLTK initialization fallback: {err}")
             self.sid = None
 
     def analyze_sentiment(self, text: str) -> Dict[str, float]:
