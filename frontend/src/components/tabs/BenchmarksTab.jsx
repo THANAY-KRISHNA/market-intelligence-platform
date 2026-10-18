@@ -184,21 +184,21 @@ export default function BenchmarksTab({ darkMode }) {
             <div className="text-2xl font-black font-mono text-cyan-400">
               {benchmarks.average_throughput?.toLocaleString()}
             </div>
-            <span className="text-[9px] text-zinc-500 block font-medium">Records per second</span>
+            <span className="text-[9px] text-zinc-500 block font-medium">Records per second (Host CPU)</span>
           </div>
 
           <div className={`p-5 rounded-2xl border ${borderLight} ${cardBg} space-y-1`}>
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Max Speedup Factor</span>
             <div className="text-2xl font-black font-mono text-purple-400">
-              {benchmarks.benchmark_runs?.[benchmarks.benchmark_runs.length - 1]?.speedup_factor}x
+              {benchmarks.max_speedup || benchmarks.benchmark_runs?.[benchmarks.benchmark_runs.length - 1]?.speedup_factor}x
             </div>
-            <span className="text-[9px] text-zinc-500 block font-medium">Vectorized vs Iterative loop</span>
+            <span className="text-[9px] text-zinc-500 block font-medium">SIMD Vectorized vs Iterative loop</span>
           </div>
 
           <div className={`p-5 rounded-2xl border ${borderLight} ${cardBg} space-y-1`}>
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Peak Memory Footprint</span>
             <div className="text-2xl font-black font-mono text-emerald-400">
-              1.53 MB
+              {benchmarks.peak_memory_mb || '1.53'} MB
             </div>
             <span className="text-[9px] text-zinc-500 block font-medium">50,000 float64 elements</span>
           </div>
@@ -206,9 +206,9 @@ export default function BenchmarksTab({ darkMode }) {
           <div className={`p-5 rounded-2xl border ${borderLight} ${cardBg} space-y-1`}>
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Execution Engine</span>
             <div className="text-sm font-black font-mono text-white truncate pt-1">
-              CPython 3.13 + NumPy
+              {benchmarks.environment || 'CPython 3.13 + NumPy'}
             </div>
-            <span className="text-[9px] text-zinc-500 block font-medium">FastAPI Local Serverless</span>
+            <span className="text-[9px] text-zinc-500 block font-medium">{benchmarks.benchmark_type || 'Empirical Host Micro-Benchmark'}</span>
           </div>
         </div>
       )}

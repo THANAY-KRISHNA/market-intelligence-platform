@@ -186,11 +186,11 @@ export default function ProjectInfoTab({ darkMode }) {
             },
             {
               step: 'Step 4: Execute the 7-Stage Processing Pipeline',
-              desc: 'Navigate to Data Processing. Click "Process Dataset Now". Observe the real measured execution duration (~28ms) across all 7 stages and historical audit logs.'
+              desc: 'Navigate to Data Processing. Click "Process Dataset Now". Observe the real measured execution duration (typically 15-35ms) across all 7 stages and historical audit logs.'
             },
             {
               step: 'Step 5: Review Empirical Hardware Benchmarks',
-              desc: 'Open Performance & Benchmarks. Show the measured throughput curves comparing NumPy SIMD vectorization against sequential loops (7.2x speedup).'
+              desc: 'Open Performance & Benchmarks. Show the measured throughput curves comparing NumPy SIMD vectorization against sequential loops (measured empirical speedup on host CPU).'
             },
             {
               step: 'Step 6: Export Data & Print Academic Dossier',

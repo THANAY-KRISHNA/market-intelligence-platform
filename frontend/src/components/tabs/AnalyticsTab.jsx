@@ -42,9 +42,13 @@ export default function AnalyticsTab({ darkMode, selectedTicker = 'TSLA', onSele
 
   // Volume Comparison Bar Chart Option
   const getVolumeChartOption = () => {
-    const categories = TICKERS;
-    const volumes = [45.2, 38.1, 89.4, 21.3, 18.7, 29.5, 22.1, 14.2]; // in Millions
-    const sentiments = [0.42, 0.65, 0.78, 0.51, 0.38, 0.22, 0.45, -0.15];
+    const categories = tickers.length > 0 ? tickers.map(t => t.ticker) : TICKERS;
+    const volumes = tickers.length > 0 
+      ? tickers.map(t => Number((((t.volume || 1000000)) / 1000000).toFixed(1)))
+      : [45.2, 38.1, 89.4, 21.3, 18.7, 29.5, 22.1, 14.2];
+    const sentiments = tickers.length > 0
+      ? tickers.map(t => Number((t.avg_sentiment ?? 0).toFixed(2)))
+      : [0.42, 0.65, 0.78, 0.51, 0.38, 0.22, 0.45, -0.15];
 
     return {
       backgroundColor: 'transparent',
@@ -105,6 +109,23 @@ export default function AnalyticsTab({ darkMode, selectedTicker = 'TSLA', onSele
 
   // Sentiment Distribution Donut Option
   const getDonutOption = () => {
+    let bullishCount = 0;
+    let bearishCount = 0;
+    let neutralCount = 0;
+
+    if (tickers && tickers.length > 0) {
+      tickers.forEach(t => {
+        const s = t.avg_sentiment ?? 0;
+        if (s > 0.15) bullishCount++;
+        else if (s < -0.15) bearishCount++;
+        else neutralCount++;
+      });
+    } else {
+      bullishCount = 5;
+      bearishCount = 1;
+      neutralCount = 2;
+    }
+
     return {
       backgroundColor: 'transparent',
       tooltip: {
@@ -129,9 +150,9 @@ export default function AnalyticsTab({ darkMode, selectedTicker = 'TSLA', onSele
             label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#fff' }
           },
           data: [
-            { value: 4500, name: 'Bullish (> +0.15)', itemStyle: { color: '#10b981' } },
-            { value: 3020, name: 'Bearish (< -0.15)', itemStyle: { color: '#f43f5e' } },
-            { value: 2500, name: 'Neutral (-0.15 to +0.15)', itemStyle: { color: '#71717a' } }
+            { value: bullishCount, name: `Bullish (> +0.15) [${bullishCount}]`, itemStyle: { color: '#10b981' } },
+            { value: bearishCount, name: `Bearish (< -0.15) [${bearishCount}]`, itemStyle: { color: '#f43f5e' } },
+            { value: neutralCount, name: `Neutral [${neutralCount}]`, itemStyle: { color: '#71717a' } }
           ]
         }
       ]

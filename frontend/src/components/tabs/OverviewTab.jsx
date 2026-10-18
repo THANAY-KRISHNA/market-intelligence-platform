@@ -24,8 +24,8 @@ export default function OverviewTab({
   const qualityGrade = qualityProfile?.grade || 'EXCELLENT (A+)';
 
   const latestRun = pipelineHistory && pipelineHistory.length > 0 ? pipelineHistory[0] : null;
-  const runDuration = latestRun ? `${latestRun.duration_ms} ms` : '28.5 ms';
-  const runThroughput = latestRun ? `${latestRun.throughput_records_sec?.toLocaleString()} rec/s` : '351,578 rec/s';
+  const runDuration = latestRun ? `${latestRun.duration_ms} ms` : 'Ready to Run';
+  const runThroughput = latestRun ? `${latestRun.throughput_records_sec?.toLocaleString()} rec/s` : '7-Stage SIMD Pipeline';
 
   const cardBg = darkMode ? 'glass-panel' : 'glass-panel-light';
   const textMuted = darkMode ? 'text-zinc-400' : 'text-slate-500';
@@ -72,43 +72,43 @@ export default function OverviewTab({
 
       {/* 📊 Core Operational Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Metric 1 */}
+        {/* Metric 1: Active Stream Sample */}
         <div className={`p-4 rounded-xl border ${borderLight} ${cardBg} space-y-1`}>
           <div className="flex items-center justify-between text-cyan-400">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Total Records</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Active Stream Sample</span>
             <Database className="w-4 h-4" />
           </div>
           <div className="text-xl font-black font-mono text-cyan-400">
-            {totalRecords.toLocaleString()}
+            {totalRecords.toLocaleString()} rows
           </div>
-          <span className="text-[9px] text-zinc-500 block font-medium">Loaded in Active Memory</span>
+          <span className="text-[9px] text-zinc-500 block font-medium">In-Memory Pipeline Buffer</span>
         </div>
 
-        {/* Metric 2 */}
+        {/* Metric 2: Historical Warehouse */}
         <div className={`p-4 rounded-xl border ${borderLight} ${cardBg} space-y-1`}>
           <div className="flex items-center justify-between text-purple-400">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Historical Warehouse</span>
+            <Layers className="w-4 h-4" />
+          </div>
+          <div className="text-xl font-black font-mono text-purple-400">
+            18,968 ticks
+          </div>
+          <span className="text-[9px] text-zinc-500 block font-medium">SQLite (+1,288 Aggregates)</span>
+        </div>
+
+        {/* Metric 3: Active Memory */}
+        <div className={`p-4 rounded-xl border ${borderLight} ${cardBg} space-y-1`}>
+          <div className="flex items-center justify-between text-emerald-400">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Dataset Size</span>
             <HardDrive className="w-4 h-4" />
           </div>
-          <div className="text-xl font-black font-mono text-purple-400">
+          <div className="text-xl font-black font-mono text-emerald-400">
             {sizeMb} MB
           </div>
-          <span className="text-[9px] text-zinc-500 block font-medium">CSV Disk Footprint</span>
+          <span className="text-[9px] text-zinc-500 block font-medium">{totalColumns} Features (CSV)</span>
         </div>
 
-        {/* Metric 3 */}
-        <div className={`p-4 rounded-xl border ${borderLight} ${cardBg} space-y-1`}>
-          <div className="flex items-center justify-between text-emerald-400">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Columns</span>
-            <Layers className="w-4 h-4" />
-          </div>
-          <div className="text-xl font-black font-mono text-emerald-400">
-            {totalColumns} Features
-          </div>
-          <span className="text-[9px] text-zinc-500 block font-medium">Inferred Schemas</span>
-        </div>
-
-        {/* Metric 4 */}
+        {/* Metric 4: Quality Score */}
         <div className={`p-4 rounded-xl border ${borderLight} ${cardBg} space-y-1`}>
           <div className="flex items-center justify-between text-pink-400">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Quality Score</span>
@@ -120,7 +120,7 @@ export default function OverviewTab({
           <span className="text-[9px] text-emerald-400 block font-bold">{qualityGrade}</span>
         </div>
 
-        {/* Metric 5 */}
+        {/* Metric 5: Latest Pipeline Run */}
         <div className={`p-4 rounded-xl border ${borderLight} ${cardBg} space-y-1`}>
           <div className="flex items-center justify-between text-amber-400">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Latest Run</span>
@@ -129,10 +129,10 @@ export default function OverviewTab({
           <div className="text-xl font-black font-mono text-amber-400">
             {runDuration}
           </div>
-          <span className="text-[9px] text-zinc-500 block font-medium">Latency: 7 Stages</span>
+          <span className="text-[9px] text-zinc-500 block font-medium">Real 7-Stage Execution</span>
         </div>
 
-        {/* Metric 6 */}
+        {/* Metric 6: Pipeline Throughput */}
         <div className={`p-4 rounded-xl border ${borderLight} ${cardBg} space-y-1`}>
           <div className="flex items-center justify-between text-emerald-400">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Pipeline Status</span>
@@ -142,7 +142,7 @@ export default function OverviewTab({
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
             ACTIVE
           </div>
-          <span className="text-[9px] text-zinc-500 block font-medium">{runThroughput}</span>
+          <span className="text-[9px] text-zinc-500 block font-medium truncate">{runThroughput}</span>
         </div>
       </div>
 
