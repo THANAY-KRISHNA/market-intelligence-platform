@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Query, status, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, HTTPException, Query, status, WebSocket, WebSocketDisconnect, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -25,6 +25,19 @@ from .auth import (
     get_current_user, require_user
 )
 from .analyzer import get_sentiment_analyzer
+from .bigdata_service import (
+    get_dataset_preview,
+    get_dataset_statistics,
+    calculate_data_quality_profile,
+    clean_dataset,
+    execute_processing_pipeline,
+    get_pipeline_history,
+    run_benchmarks,
+    get_active_dataset,
+    get_or_load_default_dataset,
+    ACTIVE_DATASETS,
+    DATASET_METADATA
+)
 
 app = FastAPI(title="Real-Time Stock Sentiment & Price Correlation Pipeline API", version="1.0.0")
 
@@ -483,6 +496,174 @@ def get_metrics(db: Session = Depends(get_db)):
         "total_signals": db.query(CorrelationSignal).count(),
         "total_alerts": db.query(Alert).count()
     }
+
+# ----------------- Big Data Analytics & Pipeline Endpoints -----------------
+
+class CleanDatasetRequest(BaseModel):
+    dataset_id: str = "default"
+    drop_duplicates: bool = True
+    missing_strategy: str = "impute_mean"  # drop, impute_mean, impute_median, none
+    outlier_treatment: str = "flag"        # drop, cap, flag, none
+
+@app.get("/api/dataset/preview")
+def api_dataset_preview(
+    dataset_id: str = "default",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=5, le=100),
+    search: str = "",
+    sort_by: Optional[str] = None,
+    sort_order: str = "asc",
+    ticker_filter: Optional[str] = None,
+    sentiment_filter: Optional[str] = None
+):
+    try:
+        return get_dataset_preview(
+            dataset_id=dataset_id,
+            page=page,
+            page_size=page_size,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            ticker_filter=ticker_filter,
+            sentiment_filter=sentiment_filter
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate dataset preview: {str(e)}")
+
+@app.get("/api/dataset/statistics")
+def api_dataset_statistics(dataset_id: str = "default"):
+    try:
+        return get_dataset_statistics(dataset_id=dataset_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate statistics: {str(e)}")
+
+@app.get("/api/dataset/quality-profile")
+def api_dataset_quality_profile(dataset_id: str = "default"):
+    try:
+        return calculate_data_quality_profile(dataset_id=dataset_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate data quality profile: {str(e)}")
+
+@app.post("/api/dataset/clean")
+def api_clean_dataset(payload: CleanDatasetRequest):
+    try:
+        return clean_dataset(
+            dataset_id=payload.dataset_id,
+            drop_duplicates=payload.drop_duplicates,
+            missing_strategy=payload.missing_strategy,
+            outlier_treatment=payload.outlier_treatment
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cleaning operation failed: {str(e)}")
+
+@app.get("/api/dataset/versions")
+def api_get_dataset_versions():
+    get_or_load_default_dataset()
+    versions = []
+    for vid, meta in DATASET_METADATA.items():
+        df = ACTIVE_DATASETS.get(vid)
+        versions.append({
+            "dataset_id": vid,
+            "filename": meta.get("name", f"{vid}.csv"),
+            "source": meta.get("source", "System"),
+            "records": len(df) if df is not None else 0,
+            "columns": len(df.columns) if df is not None else 0,
+            "size_bytes": meta.get("size_bytes", 0),
+            "loaded_at": meta.get("loaded_at", datetime.now().isoformat()),
+            "parent_id": meta.get("parent_id")
+        })
+    return versions
+
+@app.post("/api/dataset/upload")
+async def api_upload_dataset(file: UploadFile = File(...)):
+    # 1. Validate file extension
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only CSV formatted files (.csv) are supported.")
+    
+    # 2. Read content and validate size (limit 25MB)
+    MAX_FILE_SIZE = 25 * 1024 * 1024
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail=f"File exceeds maximum upload limit of 25MB (Received {round(len(content)/(1024*1024), 2)}MB).")
+    
+    import io
+    import uuid
+    import pandas as pd
+    try:
+        df = pd.read_csv(io.BytesIO(content))
+        if df.empty or len(df.columns) < 2:
+            raise HTTPException(status_code=400, detail="Uploaded CSV contains insufficient columns or no records.")
+        
+        upload_id = f"upload_{uuid.uuid4().hex[:6]}"
+        ACTIVE_DATASETS[upload_id] = df
+        DATASET_METADATA[upload_id] = {
+            "name": file.filename,
+            "source": "User Upload",
+            "size_bytes": len(content),
+            "loaded_at": datetime.now().isoformat(),
+            "records": len(df),
+            "columns": len(df.columns)
+        }
+        
+        return {
+            "status": "success",
+            "dataset_id": upload_id,
+            "filename": file.filename,
+            "total_records": len(df),
+            "total_columns": len(df.columns),
+            "columns": list(df.columns),
+            "size_bytes": len(content)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse CSV file: {str(e)}")
+
+@app.post("/api/pipeline/run")
+def api_run_pipeline(dataset_id: str = Query("default")):
+    try:
+        return execute_processing_pipeline(dataset_id=dataset_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {str(e)}")
+
+@app.get("/api/pipeline/history")
+def api_pipeline_history():
+    return get_pipeline_history()
+
+@app.get("/api/benchmark/run")
+def api_run_benchmarks():
+    try:
+        return run_benchmarks()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Benchmarking suite failed: {str(e)}")
+
+@app.get("/api/dataset/export")
+def api_export_dataset_csv(dataset_id: str = "default"):
+    df = get_active_dataset(dataset_id)
+    csv_str = df.to_csv(index=False)
+    meta = DATASET_METADATA.get(dataset_id, {})
+    filename = meta.get("name", f"{dataset_id}.csv")
+    if not filename.endswith(".csv"):
+        filename += ".csv"
+    return Response(
+        content=csv_str,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@app.get("/api/dataset/export-report")
+def api_export_quality_report(dataset_id: str = "default"):
+    profile = calculate_data_quality_profile(dataset_id)
+    stats = get_dataset_statistics(dataset_id)
+    meta = DATASET_METADATA.get(dataset_id, {})
+    report_data = {
+        "report_title": "Enterprise Big Data Quality & Processing Audit Report",
+        "generated_at": datetime.now().isoformat(),
+        "dataset_metadata": meta,
+        "quality_audit": profile,
+        "statistical_profile": stats
+    }
+    return report_data
 
 class CopilotChatPayload(BaseModel):
     message: str

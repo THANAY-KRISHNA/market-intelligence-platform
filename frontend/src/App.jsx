@@ -23,8 +23,10 @@ export default function App() {
   return (
     <div className={`relative min-h-screen w-full transition-colors duration-300 overflow-x-hidden ${darkMode ? 'bg-[#030303] text-zinc-100' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* 🔮 Master 3D WebGL Backdrop (always active, darkens in dashboard view) */}
-      <Landing3D chapter={view === 'landing' ? 1 : 8} onSelectExchange={setSelectedExchange} />
+      {/* 🔮 Master 3D WebGL Backdrop (active on landing view for 60fps dashboard performance) */}
+      {view === 'landing' && (
+        <Landing3D chapter={1} onSelectExchange={setSelectedExchange} />
+      )}
 
       {/* 🚀 TradeFlow App View Controller */}
       <AnimatePresence mode="wait">
@@ -208,7 +210,11 @@ export default function App() {
             transition={{ duration: 0.3 }}
             className="relative z-10 w-full"
           >
-            <Dashboard onBackToLanding={() => setView('landing')} />
+            <Dashboard 
+              onBackToLanding={() => setView('landing')} 
+              darkMode={darkMode} 
+              onToggleDarkMode={toggleDarkMode} 
+            />
           </motion.div>
         )}
       </AnimatePresence>

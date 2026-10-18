@@ -88,3 +88,30 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #2e2e38;
 }
+
+/* Print optimizations for academic evaluation reports */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  aside, header, nav, .no-print, button {
+    display: none !important;
+  }
+  .printable-report {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  .glass-panel, .glass-panel-light {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    color: #0f172a !important;
+  }
+}
+
