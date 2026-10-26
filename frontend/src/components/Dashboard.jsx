@@ -126,7 +126,8 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
     window.addEventListener('keydown', handleKeyDown);
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+    const envWsUrl = import.meta.env.VITE_WS_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/^http/, 'ws') + '/api/ws' : null);
+    const wsUrl = envWsUrl || `${protocol}//${window.location.host}/api/ws`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

@@ -1,0 +1,7 @@
+.git
+.venv
+backend
+pipeline
+tests
+docker
+*.db
