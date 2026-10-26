@@ -126,7 +126,8 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
 
     // WebSocket connection
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+    const envWsUrl = import.meta.env.VITE_WS_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/^http/, 'ws') + '/api/ws' : null);
+    const wsUrl = envWsUrl || `${protocol}//${window.location.host}/api/ws`;
     let ws;
     try {
       ws = new WebSocket(wsUrl);
@@ -140,9 +141,10 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
               return matched ? { ...t, current_price: matched.price, volume: matched.volume } : t;
             }));
           } else if (payload.type === 'new_alerts') {
-            const matchedBuy = payload.data.find(x => x.message?.includes('Strong BUY'));
+            setAlerts(prev => [...payload.data, ...prev].slice(0, 50));
+            const matchedBuy = payload.data.find(x => (x.message?.includes('Strong BUY') || x.message?.includes('BUY')));
             if (matchedBuy) {
-              confetti({ particleCount: 60, spread: 50, origin: { y: 0.6 }, colors: ['#10b981', '#00f2fe'] });
+              confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 }, colors: ['#10b981', '#00f2fe'] });
             }
           }
         } catch (e) {
