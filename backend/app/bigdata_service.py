@@ -27,6 +27,17 @@ for p in candidate_dataset_paths:
 ACTIVE_DATASETS: Dict[str, pd.DataFrame] = {}
 DATASET_METADATA: Dict[str, Dict[str, Any]] = {}
 PIPELINE_RUNS: List[Dict[str, Any]] = []
+_CACHE_QUALITY_PROFILES: Dict[str, Any] = {}
+_CACHE_STATISTICS: Dict[str, Any] = {}
+
+def invalidate_dataset_cache(dataset_id: Optional[str] = None):
+    global _CACHE_QUALITY_PROFILES, _CACHE_STATISTICS
+    if dataset_id:
+        _CACHE_QUALITY_PROFILES.pop(dataset_id, None)
+        _CACHE_STATISTICS.pop(dataset_id, None)
+    else:
+        _CACHE_QUALITY_PROFILES.clear()
+        _CACHE_STATISTICS.clear()
 
 def get_or_load_default_dataset() -> pd.DataFrame:
     global ACTIVE_DATASETS, DATASET_METADATA
@@ -149,6 +160,10 @@ def get_dataset_preview(
     }
 
 def get_dataset_statistics(dataset_id: str = "default") -> Dict[str, Any]:
+    global _CACHE_STATISTICS
+    if dataset_id in _CACHE_STATISTICS:
+        return _CACHE_STATISTICS[dataset_id]
+
     df = get_active_dataset(dataset_id)
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     categorical_cols = df.select_dtypes(include=["object", "str"]).columns.tolist()
@@ -185,12 +200,17 @@ def get_dataset_statistics(dataset_id: str = "default") -> Dict[str, Any]:
             "top_frequencies": {str(k): int(v) for k, v in top_val_counts.items()}
         }
 
+    _CACHE_STATISTICS[dataset_id] = stats
     return stats
 
 # -------------------------------------------------------------
 # 2. Data Quality & Profiling Module
 # -------------------------------------------------------------
 def calculate_data_quality_profile(dataset_id: str = "default") -> Dict[str, Any]:
+    global _CACHE_QUALITY_PROFILES
+    if dataset_id in _CACHE_QUALITY_PROFILES:
+        return _CACHE_QUALITY_PROFILES[dataset_id]
+
     df = get_active_dataset(dataset_id)
     total_records = len(df)
     total_cells = total_records * len(df.columns) if len(df.columns) > 0 else 1
@@ -268,7 +288,7 @@ def calculate_data_quality_profile(dataset_id: str = "default") -> Dict[str, Any
     else:
         grade = "NEEDS REMEDIATION (D)"
 
-    return {
+    res = {
         "dataset_id": dataset_id,
         "total_records": total_records,
         "total_columns": len(df.columns),
@@ -289,6 +309,8 @@ def calculate_data_quality_profile(dataset_id: str = "default") -> Dict[str, Any
         "warnings": warnings,
         "methodology": "4-Factor Weighted Quality Model: Completeness (40%), Uniqueness (30%), Data Type Validity (15%), IQR Statistical Bounds (15%)."
     }
+    _CACHE_QUALITY_PROFILES[dataset_id] = res
+    return res
 
 def clean_dataset(
     dataset_id: str = "default",

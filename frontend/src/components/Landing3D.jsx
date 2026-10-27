@@ -384,8 +384,9 @@ function CameraRig({ chapter }) {
 // ----------------- MASTER CANVAS BACKDROP -----------------
 export default function Landing3D({ chapter }) {
   return (
-    <div className="absolute inset-0 w-full h-full -z-10 bg-[#030303] overflow-hidden">
+    <div className="absolute inset-0 w-full h-full -z-10 bg-[#030303] overflow-hidden pointer-events-none select-none">
       <Canvas 
+        dpr={[1, 1.5]}
         camera={{ position: [0, 0, 7.2], fov: 60 }}
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       >
@@ -397,7 +398,7 @@ export default function Landing3D({ chapter }) {
         <pointLight position={[-10, -10, -10]} intensity={1.0} color="#10b981" />
         
         {/* Particle System Starfield */}
-        <Stars radius={120} depth={50} count={2000} factor={6} saturation={0.5} fade speed={1.5} />
+        <Stars radius={120} depth={50} count={700} factor={5} saturation={0.5} fade speed={1.2} />
         {chapter === 5 && <Sparkles count={100} scale={4} size={2} speed={1.0} color="#a78bfa" />}
         
         {/* Immersive Financial Assets */}

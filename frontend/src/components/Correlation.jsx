@@ -7,13 +7,13 @@ export default function Correlation({ ticker }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchCorrelation = async () => {
+  const fetchCorrelation = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       const res = await axios.get(`/api/correlation/${ticker}`);
       setData(res.data);
     } catch (err) {
-      console.error("Error loading correlation details:", err);
+      console.warn("Correlation fetch notice:", err.message);
       // Fallback dummy timeline for robust frontend testing offline
       const mockTimeline = Array.from({ length: 30 }).map((_, i) => {
         const timeStr = new Date(Date.now() - (30 - i) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -32,15 +32,15 @@ export default function Correlation({ ticker }) {
         timeline: mockTimeline
       });
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCorrelation();
+    fetchCorrelation(true);
     
-    // Refresh correlation chart every 10 seconds (in addition to websocket pushes)
-    const interval = setInterval(fetchCorrelation, 10000);
+    // Refresh correlation chart smoothly every 10 seconds without flashing
+    const interval = setInterval(() => fetchCorrelation(false), 10000);
     return () => clearInterval(interval);
   }, [ticker]);
 

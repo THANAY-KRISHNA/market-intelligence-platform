@@ -5,12 +5,33 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, CheckCircle, Database, Network } from 'lucide-react';
 
 export default function App() {
-  const [view, setView] = useState('landing'); // 'landing' | 'dashboard'
+  const [view, setView] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#landing') {
+      return 'landing';
+    }
+    return 'dashboard';
+  });
   const [selectedExchange, setSelectedExchange] = useState(null);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('tradeflow_theme');
     return saved ? saved === 'dark' : true;
   });
+
+  const navigateTo = (newView) => {
+    setView(newView);
+    if (typeof window !== 'undefined') {
+      window.location.hash = newView === 'landing' ? '#landing' : '#dashboard';
+    }
+  };
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#landing') setView('landing');
+      else setView('dashboard');
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const toggleDarkMode = () => {
     setDarkMode(prev => {
@@ -66,8 +87,8 @@ export default function App() {
                   {darkMode ? '🌙 Dark' : '☀️ Light'}
                 </button>
                 <button 
-                  onClick={() => setView('dashboard')}
-                  className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black text-[10px] rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-md shadow-purple-500/25 uppercase tracking-widest"
+                  onClick={() => navigateTo('dashboard')}
+                  className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black text-[10px] rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-md shadow-purple-500/25 uppercase tracking-widest cursor-pointer"
                 >
                   Launch App
                 </button>
@@ -95,14 +116,14 @@ export default function App() {
 
                 <div className="flex flex-wrap gap-4 pt-2">
                   <button 
-                    onClick={() => setView('dashboard')}
-                    className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-[10px] tracking-widest uppercase rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-cyan-500/25 flex items-center gap-2"
+                    onClick={() => navigateTo('dashboard')}
+                    className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-[10px] tracking-widest uppercase rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-cyan-500/25 flex items-center gap-2 cursor-pointer"
                   >
                     Explore Dashboard &rarr;
                   </button>
                   <button 
-                    onClick={() => setView('dashboard')}
-                    className="px-8 py-4 bg-white/5 border border-white/10 hover:border-white/20 text-white font-black text-[10px] tracking-widest uppercase rounded-xl transition-all hover:bg-white/10 active:scale-95"
+                    onClick={() => navigateTo('dashboard')}
+                    className="px-8 py-4 bg-white/5 border border-white/10 hover:border-white/20 text-white font-black text-[10px] tracking-widest uppercase rounded-xl transition-all hover:bg-white/10 active:scale-95 cursor-pointer"
                   >
                     Watch Demo
                   </button>
@@ -211,7 +232,7 @@ export default function App() {
             className="relative z-10 w-full"
           >
             <Dashboard 
-              onBackToLanding={() => setView('landing')} 
+              onBackToLanding={() => navigateTo('landing')} 
               darkMode={darkMode} 
               onToggleDarkMode={toggleDarkMode} 
             />

@@ -18,5 +18,19 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+          'vendor-echarts': ['echarts', 'echarts-for-react'],
+          'vendor-motion': ['framer-motion', 'gsap'],
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-icons': ['lucide-react'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1200
   }
 })

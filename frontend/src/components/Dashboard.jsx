@@ -14,6 +14,7 @@ import AnalyticsTab from './tabs/AnalyticsTab';
 import BenchmarksTab from './tabs/BenchmarksTab';
 import ReportsTab from './tabs/ReportsTab';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
+import AiAssistantWindow from './AiAssistantWindow';
 
 const TICKERS = ["TSLA", "AAPL", "NVDA", "MSFT", "META", "AMZN", "GOOGL", "NFLX"];
 
@@ -56,6 +57,7 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
   const [latency, setLatency] = useState(8);
   const [apiStatus, setApiStatus] = useState('operational');
   const [wsConnected, setWsConnected] = useState(false);
+  const [alerts, setAlerts] = useState([]);
 
   // Big Data Telemetry State
   const [previewData, setPreviewData] = useState(null);
@@ -63,58 +65,51 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
   const [pipelineHistory, setPipelineHistory] = useState([]);
   const [pipelineRunning, setPipelineRunning] = useState(false);
 
-  // AI Copilot Assistant Drawer State
+  // AI Assistant Window State
   const [copilotOpen, setCopilotOpen] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [chatHistory, setChatHistory] = useState([
-    { role: 'assistant', text: "Big Data intelligence systems online. Ask about VADER sentiment polarity, Pearson correlation scores, or pipeline throughput metrics." }
-  ]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const chatEndRef = useRef(null);
 
   // Command Palette State
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteSearch, setPaletteSearch] = useState('');
 
-  // Fetch Core Telemetry & Overview
-  const fetchTelemetry = async () => {
+  // 1. Fetch Heavy Dataset Metrics (once on mount or after pipeline/cleaning operations)
+  const fetchDatasetMetrics = async () => {
+    try {
+      const [previewRes, qualityRes, histRes] = await Promise.all([
+        axios.get('/api/dataset/preview?page=1&page_size=5'),
+        axios.get('/api/dataset/quality-profile'),
+        axios.get('/api/pipeline/history')
+      ]);
+      if (previewRes.data) setPreviewData(previewRes.data);
+      if (qualityRes.data) setQualityProfile(qualityRes.data);
+      if (histRes.data) setPipelineHistory(histRes.data);
+    } catch (err) {
+      console.warn("Dataset metrics initial load error:", err);
+    }
+  };
+
+  const fetchTelemetry = fetchDatasetMetrics;
+
+  // 2. Fast Lightweight Market Summary Polling
+  const fetchMarketSummary = async () => {
     const startTime = Date.now();
     try {
-      // 1. Market summary
       const summaryRes = await axios.get('/api/market-summary');
       if (summaryRes.data && Array.isArray(summaryRes.data.tickers) && summaryRes.data.tickers.length > 0) {
         setTickers(summaryRes.data.tickers);
       }
-
-      // 2. Dataset preview metrics
-      const previewRes = await axios.get('/api/dataset/preview?page=1&page_size=5');
-      if (previewRes.data) {
-        setPreviewData(previewRes.data);
-      }
-
-      // 3. Quality profile
-      const qualityRes = await axios.get('/api/dataset/quality-profile');
-      if (qualityRes.data) {
-        setQualityProfile(qualityRes.data);
-      }
-
-      // 4. Pipeline history
-      const histRes = await axios.get('/api/pipeline/history');
-      if (histRes.data) {
-        setPipelineHistory(histRes.data);
-      }
-
       setLatency(Date.now() - startTime);
       setApiStatus('operational');
     } catch (err) {
-      console.error("Telemetry fetch error:", err);
+      console.warn("Market summary fetch error:", err);
       setApiStatus('degraded');
     }
   };
 
   useEffect(() => {
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 12000);
+    fetchDatasetMetrics();
+    fetchMarketSummary();
+    const interval = setInterval(fetchMarketSummary, 10000);
 
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -164,16 +159,13 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
     };
   }, []);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory]);
-
   const handleRunPipeline = async () => {
     setPipelineRunning(true);
     try {
       const res = await axios.post('/api/pipeline/run');
       setPipelineHistory(prev => [res.data, ...prev].slice(0, 20));
-      fetchTelemetry();
+      fetchDatasetMetrics();
+      fetchMarketSummary();
       confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 }, colors: ['#a855f7', '#00f2fe'] });
     } catch (err) {
       console.error("Pipeline run error:", err);
@@ -182,26 +174,6 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
     }
   };
 
-  const handleChatSubmit = async (e) => {
-    e.preventDefault();
-    if (!chatInput) return;
-    const userQuery = chatInput;
-    setChatHistory(prev => [...prev, { role: 'user', text: userQuery }]);
-    setChatInput('');
-    setChatLoading(true);
-
-    try {
-      const res = await axios.post('/api/copilot/chat', { message: userQuery });
-      if (res.data && res.data.reply) {
-        setChatHistory(prev => [...prev, { role: 'assistant', text: res.data.reply }]);
-      }
-    } catch (err) {
-      let reply = `Analysis completed for "${userQuery}". Overall market sentiment is bullish (+0.48 VADER score) with strong positive price correlation across tracked mega-cap assets.`;
-      setChatHistory(prev => [...prev, { role: 'assistant', text: reply }]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
 
   const currentNav = NAV_ITEMS.find(item => item.id === activeTab) || NAV_ITEMS[0];
   const activeTickersList = tickers.length > 0 ? tickers : DEFAULT_TICKERS;
@@ -438,66 +410,13 @@ export default function Dashboard({ user, onBackToLanding, darkMode = true, onTo
 
       </main>
 
-      {/* 🤖 Pluggable AI Copilot Drawer (Slide-out) */}
-      {copilotOpen && (
-        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-[#08080c] border-l border-white/10 z-50 p-6 flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-200">
-          <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-purple-400" />
-                <h3 className="font-extrabold text-sm text-white">AI Market & Pipeline Copilot</h3>
-              </div>
-              <button 
-                onClick={() => setCopilotOpen(false)}
-                className="text-zinc-500 hover:text-white p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* 🤖 Institutional AI Analyst & Copilot Assistant Window */}
+      <AiAssistantWindow 
+        isOpen={copilotOpen} 
+        onClose={() => setCopilotOpen(false)} 
+        darkMode={darkMode}
+      />
 
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs font-mono">
-              {chatHistory.map((msg, i) => (
-                <div key={i} className={`p-3 rounded-xl border ${
-                  msg.role === 'assistant' 
-                    ? 'bg-zinc-900/60 border-white/5 text-zinc-300' 
-                    : 'bg-purple-950/20 border-purple-500/30 text-purple-200'
-                }`}>
-                  <span className={`text-[9px] font-black uppercase tracking-wider block mb-1 ${
-                    msg.role === 'assistant' ? 'text-cyan-400' : 'text-purple-400'
-                  }`}>
-                    {msg.role === 'assistant' ? '🤖 Copilot' : '👤 You'}
-                  </span>
-                  <p className="font-sans text-xs leading-relaxed">{msg.text}</p>
-                </div>
-              ))}
-              {chatLoading && (
-                <div className="text-purple-400 animate-pulse text-[10px] font-mono">
-                  ⚡ Analyzing multi-factor telemetry...
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-          </div>
-
-          <form onSubmit={handleChatSubmit} className="pt-4 border-t border-white/5 flex gap-2">
-            <input
-              type="text"
-              required
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask Copilot..."
-              className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-400"
-            />
-            <button
-              type="submit"
-              disabled={chatLoading}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold"
-            >
-              <Send className="w-3.5 h-3.5" />
-            </button>
-          </form>
-        </div>
-      )}
 
       {/* ⌨️ Command Palette Modal (Ctrl + K) */}
       {paletteOpen && (

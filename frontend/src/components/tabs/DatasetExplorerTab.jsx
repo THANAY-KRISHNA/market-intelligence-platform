@@ -51,6 +51,16 @@ export default function DatasetExplorerTab({ darkMode, onDatasetChanged }) {
     }
   };
 
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  // Debounce search input to avoid request spam on each keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   // Fetch Preview Data
   const fetchPreview = async () => {
     setLoading(true);
@@ -59,7 +69,7 @@ export default function DatasetExplorerTab({ darkMode, onDatasetChanged }) {
         dataset_id: datasetId,
         page,
         page_size: pageSize,
-        search,
+        search: debouncedSearch,
         sort_by: sortBy,
         sort_order: sortOrder,
         ticker_filter: tickerFilter !== 'ALL' ? tickerFilter : undefined,
@@ -106,7 +116,7 @@ export default function DatasetExplorerTab({ darkMode, onDatasetChanged }) {
 
   useEffect(() => {
     fetchPreview();
-  }, [datasetId, page, pageSize, search, sortBy, sortOrder, tickerFilter, sentimentFilter]);
+  }, [datasetId, page, pageSize, debouncedSearch, sortBy, sortOrder, tickerFilter, sentimentFilter]);
 
   useEffect(() => {
     if (activeSubTab === 'quality') fetchQuality();
